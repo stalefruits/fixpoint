@@ -3,6 +3,13 @@
 __fixpoint__ is a library offering a simple and powerful way of setting up
 test datastores and data.
 
+Ready-to-use components for [PostgreSQL][postgres], [MySQL][mysql] and
+[ElasticSearch][elastic] are already included.
+
+[postgres]: https://www.postgresql.org/
+[mysql]: https://www.mysql.com/
+[elastic]: https://www.elastic.co/products/elasticsearch
+
 ## Usage
 
 ```clojure
