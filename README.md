@@ -1,4 +1,4 @@
-# fixpoint
+# fixpoint [![Build Status](https://travis-ci.org/stylefruits/fixpoint.svg?branch=master)](https://travis-ci.org/stylefruits/fixpoint)
 
 __fixpoint__ is a library offering a simple and powerful way of setting up
 test datastores and data.
