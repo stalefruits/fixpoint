@@ -10,8 +10,8 @@ test datastores and data.
          '[fixpoint.datasource.postgresql :as pg])
 ```
 
-Set up a datasource and give it an ID to be used later,
-e.g. to set up a postgresql database and call it test-db:
+Set up a datasource and give it an ID to be used later, e.g. to set up a
+PostgreSQL database and call it `:test-db`:
 
 
 ```clojure
@@ -22,8 +22,8 @@ e.g. to set up a postgresql database and call it test-db:
 ```
 
 Set up test fixture functions. Use `fix/as` to specify a name for a specific
-fixture document that can be used in other fixture documents to refer to this
-document. Use `fix/on-datasource` to specify which datasource the fixture should
+fixture document that can be used in other fixture documents to refer to it.
+Use `fix/on-datasource` to specify which datasource the fixture should
 get inserted in, e.g.:
 
 ```clojure
@@ -58,16 +58,16 @@ instantiation of those fixtures:
 ```
 
 Note the cross-references between entities, using namespaced keywords. They,
-by default, resolve to the 'id' field of the respective inserted data. You can
+by default, resolve to the `:id` field of the respective inserted data. You can
 also do a lookup within, e.g. to create a post with the same author as another:
 
 ```clojure
 (post :post/question [:post/happy :author-id] "Do you really think so?")
 ```
 
-Of couse, so far nothing has happened since we haven't brought our datasource
-and fixtures together. Let's start up the datasource, ensuring rollback after we're
-done, insert our fixtures and check out the inserted data.
+Of course, so far nothing has happened since we haven't brought our datasource
+and fixtures together. Let's start up the datasource, ensuring rollback after
+we're done, insert our fixtures and check out the inserted data.
 
 ```clojure
 (fix/with-rollback-datasource [_ test-db]
