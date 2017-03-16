@@ -1,9 +1,7 @@
 (ns ^:mysql fixpoint.datasource.mysql-test
   (:require [clojure.test :refer :all]
             [clojure.java.jdbc :as jdbc]
-            [fixpoint.datasource
-             [jdbc :refer [with-jdbc-datasource]]
-             [mysql :as mysql]]
+            [fixpoint.datasource.mysql :as mysql]
             [fixpoint.core :as fix]))
 
 ;; ## Test Datasource
@@ -43,7 +41,7 @@
 (defn- use-mysql-setup
   []
   (fn [f]
-    (with-jdbc-datasource [db :test-db]
+    (let [db (fix/raw-datasource :test-db)]
       (try
         (->> (str "create table people ("
                   "  id         INT AUTO_INCREMENT PRIMARY KEY,"
@@ -89,8 +87,8 @@
          :post/question :person/me))
 
   (testing "datasource access."
-    (with-jdbc-datasource [db :test-db]
-      (let [ids (->> ["select id from people order by name asc"]
-                     (jdbc/query db)
-                     (map :id))]
-        (is (= (fix/ids [:person/me :person/you]) ids))))))
+    (let [db (fix/raw-datasource :test-db)
+          ids (->> ["select id from people order by name asc"]
+                   (jdbc/query db)
+                   (map :id))]
+      (is (= (fix/ids [:person/me :person/you]) ids)))))

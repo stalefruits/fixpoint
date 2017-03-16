@@ -3,7 +3,6 @@
             [clojure.java.jdbc :as jdbc]
             [fixpoint.datasource
              [hikari :as hikari]
-             [jdbc :refer [with-jdbc-datasource]]
              [postgresql :as pg]]
             [fixpoint.core :as fix]))
 
@@ -45,7 +44,7 @@
 (defn- use-postgresql-setup
   []
   (fn [f]
-    (with-jdbc-datasource [db :test-db]
+    (let [db (fix/raw-datasource :test-db)]
       (->> (str "create table people ("
                 "  id         SERIAL PRIMARY KEY,"
                 "  name       VARCHAR NOT NULL,"
@@ -87,8 +86,8 @@
          :post/question :person/me))
 
   (testing "datasource access."
-    (with-jdbc-datasource [db :test-db]
-      (let [ids (->> ["select id from people order by name asc"]
-                     (jdbc/query db)
-                     (map :id))]
-        (is (= (fix/ids [:person/me :person/you]) ids))))))
+    (let [db (fix/raw-datasource :test-db)
+          ids (->> ["select id from people order by name asc"]
+                   (jdbc/query db)
+                   (map :id))]
+      (is (= (fix/ids [:person/me :person/you]) ids)))))

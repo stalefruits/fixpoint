@@ -81,25 +81,25 @@
          :post/question :person/me))
 
   (testing "datasource access."
-    (elastic/with-elastic-client [es :es]
-      (let [index-name (is (elastic/index :es :people))
-            url (str "/" index-name "/person/_search")
-            response (->> {:url    url
-                           :method :post
-                           :body   {:query {:match_all {}}}}
-                          (s/request es))
-            ids (->> (get-in response [:body :hits :hits])
-                     (map :_id)
-                     (set))]
-        (is (= (set (fix/properties [:person/me :person/you] :elastic/id))
-               ids)))))
+    (let [es (fix/raw-datasource :es)
+          index-name (is (elastic/index :es :people))
+          url (str "/" index-name "/person/_search")
+          response (->> {:url    url
+                         :method :post
+                         :body   {:query {:match_all {}}}}
+                        (s/request es))
+          ids (->> (get-in response [:body :hits :hits])
+                   (map :_id)
+                   (set))]
+      (is (= (set (fix/properties [:person/me :person/you] :elastic/id))
+             ids))))
 
   (testing "index declaration only."
     (let [index-name (is (elastic/index :es :facets))
           url (str "/" index-name "/_mapping")
-          response (elastic/with-elastic-client [es :es]
-                     (->> {:url               url
-                           :method            :get
-                           :exception-handler (comp ex-data s/decode-exception)}
-                          (s/request es)))]
+          es (fix/raw-datasource :es)
+          response (->> {:url               url
+                         :method            :get
+                         :exception-handler (comp ex-data s/decode-exception)}
+                        (s/request es))]
       (is (= 404 (:status response))))))
