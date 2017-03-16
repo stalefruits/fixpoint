@@ -1,4 +1,8 @@
 (ns fixpoint.datasource.elastic
+  "ElasticSearch Datasource Component
+
+   Make sure the `cc.qbits/spandec` dependency is available on your
+   classpath."
   (:require [fixpoint.core :as fix]
             [qbits.spandex :as s]
             [qbits.spandex.utils :as utils])
@@ -38,7 +42,7 @@
       (get-in body path)
       body)))
 
-(defn put
+(defn- put
   [es index type id doc]
   {:pre [index type id (map? doc)]}
   (-> (request es :put [index type id] doc)
@@ -49,19 +53,19 @@
 (def ^:private default-index-settings
   {:number_of_shards 6})
 
-(defn create-index!
+(defn- create-index!
   [es index mapping & [settings]]
   (->> {:settings (merge default-index-settings settings)
         :mappings mapping}
        (request es :put [index])
        (return-body-on-success)))
 
-(defn delete-index!
+(defn- delete-index!
   [es index]
   (-> (request es :delete [index] nil)
       (return-body-on-success)))
 
-(defn refresh-index!
+(defn- refresh-index!
   [es index]
   (-> (request es :post [index :_refresh] nil)
       (return-body-on-success)))
@@ -89,7 +93,7 @@
                  "a keyword or string: "
                  (pr-str document)))))
 
-(defn assert-map-key
+(defn- assert-map-key
   [document key]
   (let [value (get document key)]
     (assert
@@ -214,34 +218,37 @@
           :else            (handle-put! this document))))
 
 (defn make-datasource
-  "Create an ElasticSearch datasource, accepting two kinds of fixture documents:
+  "Create an ElasticSearch datasource. Rollback capability is achieved by
+   only allowing index declaration through the datasource, tracking and deleting
+   any created ones.
 
-   __Index Creation__
-
-   These are identified using the `:elastic/mapping` key, so don't forget that
-   one.
-
-   ```clojure
-   (-> {:elastic/index   :people
-        :elastic/mapping {:person
-                          {:properties
-                           {:name {:type :string}
-                            :age  {:type :long}}}}}
-       (fix/on-datasource :elastic))
-   ```
-
-   __Document Insertion__
+   An index creation document has to contain both the `:elastic/index` and
+   the `:elastic/mapping` key:
 
    ```clojure
-   (-> {:elastic/index :people
-        :name          \"Me\"
-        :age           27}
-       (fix/as :person/me)
-       (fix/on-datasource :elastic))
+   {:elastic/index   :people
+    :elastic/mapping {:person
+                      {:properties
+                       {:name {:type :string}
+                        :age  {:type :long}}}}}
    ```
 
-   The connection between indices and documents is done using the
-   `:elastic/index` key."
+   The index name will be randomly generated and can be accessed by passing the
+   value given in `:elastic/index` to [[index]].
+
+   If `:elastic/mapping` is set to `false`, the index will not be created, but
+   a name will be reserved and, on rollback, cleanup initiated.
+
+   Actual documents have to reference their respective `:elastic/index` and
+   specify an `:elastic/type` pointing at the mapping they should conform to.
+   Optionally, an explicit ID can be set using `:elastic/id`.
+
+   ```clojure
+   {:elastic/index :people
+    :elastic/type  :person
+    :name          \"Me\"
+    :age           27}
+   ```"
   [id hosts]
   (map->ElasticDatasource
     {:hosts (if (string? hosts)
@@ -259,6 +266,16 @@
      ~@body))
 
 (defn index
+  "Retrieve the actual name of the index that was declared using `index-key`
+   as `:elastic/index`.
+
+   ```clojure
+   (with-datasource [es (elastic/make-datasource :elastic ...)]
+     (with-data [{:elastic/index :people, :elastic/mapping ...}]
+       (index :elastic :people)))
+   ;; => \"people-ec0796d7-c1b6-49de-a2d8-e60f262b608d\"
+   ```
+   "
   [datasource-id index-key]
   (let [{:keys [indices]} (fix/datasource datasource-id)
         index-name (some-> indices deref (get (name index-key)))]

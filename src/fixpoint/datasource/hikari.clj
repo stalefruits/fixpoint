@@ -1,5 +1,5 @@
 (ns fixpoint.datasource.hikari
-  "HikariCP wrapper for any JDBC datasource."
+  "HikariCP wrapper for any [[JDBCDatasource]]."
   (:require [fixpoint.core :as fix]
             [fixpoint.datasource.jdbc :as fix-jdbc]
             [hikari-cp.core :as hikari]
@@ -60,6 +60,7 @@
     (fix-jdbc/as-jdbc-datasource datasource)))
 
 (defn wrap-jdbc-datasource
+  "Wrap the given [[JDBCDatasource]] to use a Hikari connection pool."
   [datasource & [pool-options]]
   {:pre (satisfies? fix-jdbc/JDBCDatasource datasource)}
   (map->HikariDatasource
