@@ -23,6 +23,8 @@
                    :metadata {:doc/format :markdown}
                    :themes [:rdash]
                    :source-paths ["src"]
+                   :output-path "docs"
+
                    :source-uri "https://github.com/stylefruits/fixpoint/blob/master/{filepath}#L{line}"
                    :namespaces [fixpoint.core #"^fixpoint\.datasource\..*"]}}}
   :test-selectors {:default    #(not-any? % [:elastic :mysql :postgresql])
