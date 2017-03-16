@@ -29,38 +29,79 @@
   [pool]
   (hikari/close-datasource pool))
 
-;; ## Datasource
+;; ## Datasource Startup/Shutdown Logic
 
-(defrecord HikariDatasource [datasource pool-options db-spec pool]
+(defn- cache-db-spec
+  [{:keys [jdbc-datasource] :as this}]
+  (assoc this
+         :cached-db-spec
+         (fix-jdbc/get-db-spec jdbc-datasource)))
+
+(defn- clear-db-spec
+  [this]
+  (assoc this :cached-db-spec nil))
+
+(defn- instantiate-pool
+  [{:keys [pool-options cached-db-spec] :as this}]
+  (let [pool (start-pool! cached-db-spec pool-options)]
+    (-> this
+        (assoc :pool pool)
+        (update :jdbc-datasource fix-jdbc/set-db-spec {:datasource pool}))))
+
+(defn- cleanup-pool
+  [{:keys [cached-db-spec pool] :as this}]
+  (-> this
+      (update :jdbc-datasource
+              fix-jdbc/set-db-spec
+              cached-db-spec)
+      (update :pool stop-pool!)))
+
+(defn- start-jdbc-datasource
+  [this]
+  (update this :jdbc-datasource fix/start-datasource))
+
+(defn- stop-jdbc-datasource
+  [this]
+  (update this :jdbc-datasource fix/stop-datasource))
+
+;; ##  Rollback Logic
+
+(defn- run-with-jdbc-datasource-rollback
+  [{:keys [jdbc-datasource] :as this} f]
+  (->> (fn [datasource']
+         (f (assoc this :jdbc-datasource datasource')))
+       (fix/run-with-rollback jdbc-datasource)))
+
+;; ## Component
+
+(defrecord HikariDatasource [jdbc-datasource
+                             cached-db-spec
+                             pool-options
+                             pool]
   fix/Datasource
   (datasource-id [_]
-    (fix/datasource-id datasource))
+    (fix/datasource-id jdbc-datasource))
   (start-datasource [this]
-    (let [db-spec (:db datasource)
-          pool    (start-pool! db-spec pool-options)]
-      (-> this
-          (assoc :db-spec db-spec
-                 :pool    pool)
-          (assoc-in [:datasource :db] {:datasource pool})
-          (update :datasource fix/start-datasource))))
+    (-> this
+        (cache-db-spec)
+        (instantiate-pool)
+        (start-jdbc-datasource)))
   (stop-datasource [this]
     (-> this
-        (update :datasource fix/stop-datasource)
-        (assoc-in [:datasource :db] db-spec)
-        (update :pool stop-pool!)))
+        (stop-jdbc-datasource)
+        (cleanup-pool)
+        (clear-db-spec)))
   (run-with-rollback [this f]
-    (->> (fn [datasource']
-           (f (assoc this :datasource datasource')))
-         (fix/run-with-rollback datasource)))
+    (run-with-jdbc-datasource-rollback this f))
   (insert-document! [_ document]
-    (fix/insert-document! datasource document))
+    (fix/insert-document! jdbc-datasource document))
   (as-raw-datasource [_]
-    (fix/raw-datasource datasource)))
+    (fix/as-raw-datasource jdbc-datasource)))
 
 (defn wrap-jdbc-datasource
   "Wrap the given [[JDBCDatasource]] to use a Hikari connection pool."
-  [datasource & [pool-options]]
-  {:pre (satisfies? fix-jdbc/JDBCDatasource datasource)}
+  [jdbc-datasource & [pool-options]]
+  {:pre (satisfies? fix-jdbc/JDBCDatasource jdbc-datasource)}
   (map->HikariDatasource
-    {:datasource   datasource
-     :pool-options pool-options}))
+    {:jdbc-datasource jdbc-datasource
+     :pool-options    pool-options}))
