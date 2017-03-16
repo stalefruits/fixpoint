@@ -23,7 +23,12 @@
      `:id` (the reference ID),  `:data` (the actual data inserted) and
      optionally `:tags` (a seq of tags for entity filtering).
 
-     Reference IDs __must__ be namespaced keywords."))
+     Reference IDs __must__ be namespaced keywords.")
+  (as-raw-datasource [this]
+    "Retrieve the underlying raw datasource, e.g. a `clojure.java.jdbc` database
+     spec, or some raw connection object.
+
+     This should fail on non-started datasources."))
 
 (defprotocol Fixture
   "Protocol for datasource fixtures."
@@ -68,6 +73,15 @@
   (let [ds (maybe-datasource id)]
     (assert ds (format "no datasource registered as: %s" (pr-str id)))
     ds))
+
+(defn raw-datasource
+  "Get the raw datasource value for the [[Datasource]] registered under the
+   given ID within the current scope.
+
+   See [[datasource]] and [[as-raw-datasource]]."
+  [id]
+  (-> (datasource id)
+      (as-raw-datasource)))
 
 ;; ## Rollback
 
