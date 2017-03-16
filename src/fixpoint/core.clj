@@ -1,4 +1,5 @@
 (ns fixpoint.core
+  "Fixture Functions and Protocols"
   (:refer-clojure :exclude [ref])
   (:require [clojure.set :as set]
             [clojure.walk :as walk]))
@@ -55,11 +56,14 @@
       (f datasource))))
 
 (defn maybe-datasource
+  "Get the [[Datasource]] registered with the given ID within the current scope,
+   or `nil` if there is none."
   [id]
   (get *datasources* id))
 
 (defn datasource
-  "Get the datasource registered under the given ID within the current scope."
+  "Get the [[Datasource]] registered under the given ID within the current scope.
+   Throws an `AssertionError` if there is none."
   [id]
   (let [ds (maybe-datasource id)]
     (assert ds (format "no datasource registered as: %s" (pr-str id)))
@@ -68,6 +72,7 @@
 ;; ## Rollback
 
 (defn ^:no-doc with-rollback*
+  "See [[with-rollback]]."
   [ds f]
   (let [id (datasource-id ds)
         ds (datasource id)]
@@ -78,7 +83,15 @@
 
 (defmacro with-rollback
   "Run the given body within a 'transacted' version of the given datasource,
-   rolling back after the run has finished."
+   rolling back after the run has finished.
+
+   ```clojure
+   (with-datasource [ds (pg/make-datasource ...)]
+     (with-rollback [tx ds]
+       (let [db (as-jdbc-datasource tx)]
+         (jdbc/execute! db [\"INSERT INTO ...\" ...]))))
+   ```
+   "
   [[sym datasource] & body]
   `(with-rollback* ~datasource
      (fn [~sym] ~@body)))
@@ -86,7 +99,7 @@
 ;; ## Startup/Shutdown
 
 (defn ^:no-doc with-datasource*
-  "Run the given function, passing a started `datasource` to it."
+  "See [[with-datasource]]."
   [datasource f]
   (let [started-datasource (start-datasource datasource)]
     (try
@@ -95,14 +108,29 @@
         (stop-datasource started-datasource)))))
 
 (defmacro with-datasource
-  "Start `datasource` and bind it to `sym`, then run `body` in its scope."
+  "Start `datasource` and bind it to `sym`, then run `body` in its scope.
+
+   ```clojure
+   (with-datasource [ds (pg/make-datasource ...)]
+     ...)
+   ```
+   "
   [[sym datasource] & body]
   `(with-datasource* ~datasource
      (fn [~sym] ~@body)))
 
 (defmacro with-rollback-datasource
   "Start a 'transacted' version of `datasource`, rolling back any changed made
-   after the run has finished."
+   after the run has finished.
+
+   ```clojure
+   (with-rollback-datasource [ds (pg/make-datasource ...)]
+     (let [db (as-jdbc-datasource ds)]
+       (jdbc/execute! db [\"INSERT INTO ...\" ...])))
+   ```
+
+   This is a convenience function combining [[with-datasource]] and
+   [[with-rollback]]."
   [[sym datasource] & body]
   `(with-datasource [ds# ~datasource]
      (with-rollback [~sym ds#]
@@ -250,26 +278,60 @@
   {})
 
 (defn ^:no-doc with-data*
-  "Run the given function after inserting the given fixtures into their
-   respective datasources."
+  "See [[with-data]]."
   [fixtures f]
   (binding [*entities* (insert-fixtures! *entities* fixtures)]
     (f)))
 
 (defmacro with-data
-  "Run the given function after inserting the given fixtures into their
-   respective datasources."
+  "Given a [[Fixture]] (or a seq of them), run them against their respective
+   datasources, then execute `body`.
+
+   ```clojure
+   (defn person
+     [name]
+     (-> {:db/table :people
+          :name     name}
+         (on-datasource :db)))
+
+   (with-datasource [ds (pg/make-datasource :db ...)]
+     (with-data [(person \"me\") (person \"you\")]
+       ...))
+   ```
+
+   This has to be wrapped by [[with-datasource]] or [[with-rollback-datasource]]
+   since otherwise there is nothing to insert into."
   [fixtures & body]
   `(with-data* ~fixtures
      (fn [] ~@body)))
 
 (defn property
-  "Look up a single fixture document's property."
+  "Look up a single fixture document's property using a reference attached to a
+   fixture using [[as]].
+
+   ```clojure
+   (defn person
+     [reference name]
+     (-> {:db/table :people
+          :name     name}
+         (as reference)
+         (on-datasource :db)))
+
+   (with-datasource [ds (pg/make-datasource :db ...)]
+     (with-data [(person :person/me  \"me\")
+                 (person :person/you \"you\")]
+       (println (property :person/me))
+       (println (property :person/you :id))))
+   ```
+
+   `path` can be given to retrieve a specific key within the fixture map (using
+   `get-in`). Has to be used within a [[with-data]] block."
   [document-id & path]
   (lookup-reference *entities* document-id path))
 
 (defn properties
-  "Look up the same property in multiple fixture documents."
+  "See [[property]]. Performs a lookup in multiple fixture documents, returning
+   values in an order corresponding to `document-ids`."
   [document-ids & path]
   (map #(apply property % path) document-ids))
 
@@ -283,16 +345,30 @@
          (map #(apply property % path)))))
 
 (defn id
-  "Retrieve the `:id` property of the given document."
+  "Retrieve the `:id` [[property]] for the given document."
   [document-id]
   (property document-id :id))
 
 (defn ids
-  "Retrieve the `:id` property of the given documents."
+  "Retrieve the `:id` [[property]] for each of the given documents."
   [document-ids]
   (properties document-ids :id))
 
 (defn by-namespace
+  "Retrieve a [[property]] for each entity whose reference (attached using
+   [[as]]) has the given namespace.
+
+   ```clojure
+   (with-datasource [ds (pg/make-datasource :db ...)]
+     (with-data [(person :person/me  \"me\")
+                 (person :person/you \"you\")
+                 (post   :post/happy :person/me \"yay!\")]
+       (by-namespace :person :id)))
+   ;; => {:person/me 1, :person/you 2}
+   ```
+
+   Returns a map associating the reference (see [[as]]) with the queried
+   property."
   [nspace & path]
   (let [n (name nspace)]
     (->> (for [[document-id value] *entities*
@@ -328,12 +404,66 @@
 ;; ## Helper
 
 (defn on-datasource
+  "Declare the given fixture's target datasource, corresponding to one
+   to-be-instantiated within [[with-datasource]] or
+   [[with-rollback-datasource]].
+
+   ```clojure
+   (defn person
+     [reference name]
+     (-> {:db/table :people
+          :name     name}
+         (as reference)
+         (on-datasource :db)))
+
+   (with-datasource [ds (pg/make-datasource :db ...)]
+     (with-data [(person :person/me  \"me\") ...]
+       ...))
+   ```
+
+   The result can be passed to [[with-data]] to be run against the actual
+   datasource."
   [data datasource-id]
   {:pre [(map? data)]}
   (assoc data :fixpoint/datasource datasource-id))
 
 (defn as
-  [data fixture-id]
+  "Declare the given fixture's reference ID, which can be used from within other
+   fixtures.
+
+   ```clojure
+   (defn person
+     [reference name]
+     (-> {:db/table :people
+          :name     name}
+         (as reference)
+         (on-datasource :db)))
+
+   (defn post
+     [reference author-reference text]
+     (-> {:db/table :posts
+          :author-id author-reference
+          :text      text}
+         (as reference)
+         (on-datasource :db)))
+   ```
+
+   A simple set of fixtures could be:
+
+   ```clojure
+   [(person :person/me \"me\")
+    (post   :post/happy :person/me \"yay!\")]
+   ```
+
+   You can also reference specific fields of other documents using a vector
+   notation, e.g. to declare a post with the same author as `:post/happy`:
+
+   ```clojure
+   (post :post/again [:post/happy :author-id] \"still yay!\")
+   ```
+
+   Note that every reference ID can be used _exactly once_. "
+  [data document-id]
   {:pre [(map? data)
-         (reference? fixture-id)]}
-  (assoc data :fixpoint/id fixture-id))
+         (reference? document-id)]}
+  (assoc data :fixpoint/id document-id))

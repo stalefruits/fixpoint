@@ -1,4 +1,5 @@
 (ns fixpoint.datasource.jdbc
+  "Generic JDBC datasource component."
   (:require [fixpoint.core :as fix]
             [camel-snake-kebab
              [core :as csk]
@@ -76,6 +77,19 @@
     db))
 
 (defn make-datasource
+  "Create a JDBC datasource with the given `id`. `overrides` can contain:
+
+   - `:pre-fn`: to be applied to each document before insertion,
+   - `:post-fn`: to be applied to the `db-spec` and each insertion result,
+     transforming the data returned by a fixture.
+
+   Both can be useful for JDBC drivers that need special handling, e.g. MySQL
+   which does not return inserted data, but a map with `:generated_key` only.
+
+   Documents passed to this datasource need to contain the `:db/table` key
+   pointing at the database table they should be inserted into. Every other
+   key within the document will be interpreted as a database column and its
+   value."
   [id db-spec & [overrides]]
   (map->Database
     (merge
