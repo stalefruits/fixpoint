@@ -215,7 +215,9 @@
   (insert-document! [this {:keys [elastic/mapping] :as document}]
     (cond (false? mapping) (handle-declare-index! this document)
           mapping          (handle-create-index! this document)
-          :else            (handle-put! this document))))
+          :else            (handle-put! this document)))
+  (as-raw-datasource [_]
+    client))
 
 (defn make-datasource
   "Create an ElasticSearch datasource. Rollback capability is achieved by
@@ -257,13 +259,6 @@
      :id    id}))
 
 ;; ## Helpers
-
-(defmacro with-elastic-client
-  "Run the given body in the context of the spandex ES client belonging
-   to the given datasource."
-  [[sym datasource-id] & body]
-  `(let [~sym (:client (fix/datasource ~datasource-id))]
-     ~@body))
 
 (defn index
   "Retrieve the actual name of the index that was declared using `index-key`
