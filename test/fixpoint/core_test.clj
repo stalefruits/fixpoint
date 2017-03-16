@@ -80,7 +80,8 @@
                              (fix/as :doc/me))
                          (-> {:name        "you"
                               :friend-name [:doc/me :name]
-                              :friend-id   :doc/me}
+                              :friend-id   :doc/me
+                              :first-char  [:doc/me :name first str]}
                              (fix/as :doc/you))
                          (-> {:name "someone"}
                              (fix/as :other/them))]
@@ -89,8 +90,14 @@
              (fix/by-namespace :doc :name)))
       (is (= {:other/them "someone"}
              (fix/by-namespace :other :name)))
-      (is (= "me" (fix/property :doc/you :friend-name)))
-      (is (= (fix/id :doc/me) (fix/property :doc/you :friend-id))))))
+      (is (= "me"
+             (fix/property :doc/you :friend-name)))
+      (is (= "prefixed-me"
+             (fix/property :doc/you :friend-name #(str "prefixed-" %))))
+      (is (= "m"
+             (fix/property :doc/you :first-char)))
+      (is (= (fix/id :doc/me)
+             (fix/property :doc/you :friend-id))))))
 
 (deftest t-use-datasources
   (let [state      (atom [])
