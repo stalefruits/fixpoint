@@ -1,5 +1,5 @@
 (defproject stylefruits/fixpoint "0.1.1-SNAPSHOT"
-  :description "Generic Datasource Fixtures for Clojure"
+  :description "Simple & Powerful Test Fixtures/Datasources for Clojure"
   :url "https://github.com/stylefruits/fixpoint"
   :license {:name "Apache License 2.0"
             :url "http://www.apache.org/licenses/LICENSE-2.0.html"
