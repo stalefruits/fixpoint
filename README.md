@@ -1,7 +1,10 @@
-# fixpoint [![Build Status](https://travis-ci.org/stylefruits/fixpoint.svg?branch=master)](https://travis-ci.org/stylefruits/fixpoint)
+# fixpoint
 
 __fixpoint__ is a library offering a simple and powerful way of setting up
 test datastores and data.
+
+[![Build Status](https://travis-ci.org/stylefruits/fixpoint.svg?branch=master)](https://travis-ci.org/stylefruits/fixpoint)
+[![Clojars Artifact](https://img.shields.io/clojars/v/stylefruits/fixpoint.svg)](https://clojars.org/stylefruits/fixpoint)
 
 Ready-to-use components for [PostgreSQL][postgres], [MySQL][mysql] and
 [ElasticSearch][elastic] are already included.
