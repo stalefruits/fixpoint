@@ -54,10 +54,8 @@
          (fix/run-with-rollback datasource)))
   (insert-document! [_ document]
     (fix/insert-document! datasource document))
-
-  fix-jdbc/JDBCDatasource
-  (as-jdbc-datasource [_]
-    (fix-jdbc/as-jdbc-datasource datasource)))
+  (as-raw-datasource [_]
+    (fix/raw-datasource datasource)))
 
 (defn wrap-jdbc-datasource
   "Wrap the given [[JDBCDatasource]] to use a Hikari connection pool."

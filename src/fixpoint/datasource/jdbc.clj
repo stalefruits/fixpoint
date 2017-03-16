@@ -48,18 +48,20 @@
 
 (defprotocol JDBCDatasource
   "Protocol for JDBC datasources."
-  (as-jdbc-datasource [_]
-    "Retrive a JDBC Datasource object to be directly usable for queries."))
-
-(defmacro with-jdbc-datasource
-  "Look up a JDBC datasource using its ID, bind it to `sym` and run the body."
-  [[sym datasource-id] & body]
-  `(let [~sym (as-jdbc-datasource (fix/datasource ~datasource-id))]
-     ~@body))
+  (get-db-spec [this]
+    "Retrieve the JDBC datasource's database spec.")
+  (set-db-spec [this new-db-spec]
+    "Set the JDBC datasource's database spec."))
 
 ;; ## Datasource
 
 (defrecord Database [id db pre-fn post-fn]
+  JDBCDatasource
+  (get-db-spec [_]
+    db)
+  (set-db-spec [this new-db-spec]
+    (assoc this :db new-db-spec))
+
   fix/Datasource
   (datasource-id [_]
     id)
@@ -71,9 +73,7 @@
     (run-with-transaction-rollback this f))
   (insert-document! [this document]
     (insert! this document))
-
-  JDBCDatasource
-  (as-jdbc-datasource [_]
+  (as-raw-datasource [_]
     db))
 
 (defn make-datasource
