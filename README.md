@@ -106,8 +106,7 @@ the datasource fixture has to be applied before the data fixture:
 
 ```clojure
 (require '[clojure.test :refer :all]
-         '[clojure.java.jdbc :as jdbc]
-         '[fixpoint.datasource.jdbc :refer [with-jdbc-datasource]])
+         '[clojure.java.jdbc :as jdbc])
 
 (use-fixtures
   :once
@@ -115,7 +114,7 @@ the datasource fixture has to be applied before the data fixture:
   (fix/use-data +fixtures+))
 
 (deftest t-people-query
-  (with-jdbc-datasource [db :db]
+  (let [db (fix/raw-datasource :test-db)]
     (is (= #{"me" "you" "someone"}
            (->> (jdbc/query db ["select name from people"])
                 (map :name)
