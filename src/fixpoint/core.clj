@@ -172,18 +172,25 @@
 ;; ## Fixture Insertion
 
 (defn- lookup-reference
-  [entities document-id path]
+  [entities document-id transformations]
   (assert
     (contains? entities document-id)
     (str "no such document available within the current fixture scope: "
          (pr-str document-id)))
-  (let [result (get-in entities (cons document-id path) ::none)]
-    (assert (not= result ::none)
-            (format "document '%s' does not contain property '%s': %s"
-                    (pr-str document-id)
-                    (pr-str (vec path))
-                    (pr-str (get entities document-id))))
-    result))
+  (if (every? keyword? transformations)
+    (let [result (get-in entities (cons document-id transformations) ::none)]
+      (assert (not= result ::none)
+              (format "document '%s' does not contain property '%s': %s"
+                      (pr-str document-id)
+                      (pr-str (vec transformations))
+                      (pr-str (get entities document-id))))
+      result)
+    (let [document (get entities document-id)]
+      (reduce
+        (fn [value transformation]
+          (transformation value))
+        document
+        transformations))))
 
 (defn- resolve-references*
   [entities value]
@@ -338,25 +345,25 @@
        (println (property :person/you :id))))
    ```
 
-   `path` can be given to retrieve a specific key within the fixture map (using
-   `get-in`). Has to be used within a [[with-data]] block."
-  [document-id & path]
-  (lookup-reference *entities* document-id path))
+   `transformations` can be given to apply a sequence of functions, in order,
+   to the fixture map. Has to be used within a [[with-data]] block."
+  [document-id & transformations]
+  (lookup-reference *entities* document-id transformations))
 
 (defn properties
   "See [[property]]. Performs a lookup in multiple fixture documents, returning
    values in an order corresponding to `document-ids`."
-  [document-ids & path]
-  (map #(apply property % path) document-ids))
+  [document-ids & transformations]
+  (map #(apply property % transformations) document-ids))
 
 (defn match
   "Look up a fixture document's property for every entity that matches all
    of the given tags."
-  [tags & path]
+  [tags & transformations]
   (if-let [index-matches (seq (keep #(get-in *entities* [::index %]) tags))]
     (->> index-matches
          (reduce set/intersection)
-         (map #(apply property % path)))))
+         (map #(apply property % transformations)))))
 
 (defn id
   "Retrieve the `:id` [[property]] for the given document."
