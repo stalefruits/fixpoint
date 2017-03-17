@@ -172,7 +172,11 @@
                       (pr-str (get entities document-id))))
       result)
     (let [document (get entities document-id)]
-      (reduce #(%2 %1) document transformations))))
+      (reduce
+        (fn [value transformation]
+          (transformation value))
+        document
+        transformations))))
 
 (defn- resolve-references*
   [entities value]
