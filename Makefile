@@ -2,7 +2,7 @@ DOC_DIR="./docs"
 TMP_DOC_DIR=$(DOC_DIR).tmp
 COMMIT?=HEAD
 BRANCH?=master
-SHORT_COMMIT=$(shell git rev-parse $(COMMIT) | cut -c 1-8)
+SHORT_COMMIT=$(shell git rev-parse --short $(COMMIT))
 
 docs: $(DOC_DIR)
 	git add $(DOC_DIR)
