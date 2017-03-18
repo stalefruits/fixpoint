@@ -60,8 +60,8 @@
              (jdbc/execute! db))
         (f)
         (finally
-          (jdbc/execute! db "drop table posts")
-          (jdbc/execute! db "drop table people"))))))
+          (jdbc/execute! db "drop table if exists posts")
+          (jdbc/execute! db "drop table if exists people"))))))
 
 (use-fixtures
   :once
