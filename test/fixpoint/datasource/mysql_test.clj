@@ -48,20 +48,20 @@
                   "  name       VARCHAR(255) NOT NULL,"
                   "  age        INT NOT NULL,"
                   "  active     TINYINT NOT NULL DEFAULT TRUE,"
-                  "  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP"
+                  "  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"
                   ")")
              (jdbc/execute! db))
         (->> (str "create table posts ("
                   "  id         INT AUTO_INCREMENT PRIMARY KEY,"
                   "  author_id  INT NOT NULL REFERENCES people (id),"
                   "  text       VARCHAR(255) NOT NULL,"
-                  "  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP"
+                  "  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"
                   ")")
              (jdbc/execute! db))
         (f)
         (finally
-          (jdbc/execute! db "drop table posts")
-          (jdbc/execute! db "drop table people"))))))
+          (jdbc/execute! db "drop table if exists posts")
+          (jdbc/execute! db "drop table if exists people"))))))
 
 (use-fixtures
   :once
