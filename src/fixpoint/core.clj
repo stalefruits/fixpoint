@@ -488,3 +488,26 @@
   {:pre [(map? data)
          (reference? document-id)]}
   (assoc data :fixpoint/id document-id))
+
+;; ## Debug Functionality
+
+(defn run-fixtures!
+  "Insert the given set of fixtures into the given datasources. No rollback
+   will be performed.
+
+   ```clojure
+   (run-fixtures!
+     [(pg/make-datasource :db ...)]
+     [(-> {:db/table :people, ...} (on-datasource :db))
+      ...])
+   ```
+
+   This is a debug function, allowing you to populate your database with a set
+   of fixtures."
+  [datasources fixtures]
+  (let [f (reduce
+            (fn [f datasource]
+              #(with-datasource* datasource (fn [_] (f))))
+            #(insert-fixtures! {} fixtures)
+            datasources)]
+    (f)))

@@ -123,3 +123,15 @@
            (is (= [0 1 2] (map #(fix/property % :index) test-docs)))
            (is (= [0 1 2] (fix/properties test-docs :index))))
          (fixture-fn))))
+
+(deftest t-run-fixtures
+  (let [state      (atom [])
+        datasource (dummy-datasource state)]
+    (is (= #{:doc/me :doc/you}
+           (->> [(-> {:name "me"} (fix/as :doc/me))
+                 (-> {:name "you", :friend-id :doc/me} (fix/as :doc/you))]
+                (map #(fix/on-datasource % :db))
+                (fix/run-fixtures! [datasource])
+                (keys)
+                (set))))
+    (is (= @state [:started :stopped]))))
