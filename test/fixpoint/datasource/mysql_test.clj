@@ -10,7 +10,7 @@
   (mysql/make-datasource
     :test-db
     {:connection-uri (or (System/getenv "FIXPOINT_MYSQL_URI")
-                         "jdbc:mysql://localhost:3306/test")}))
+                         "jdbc:mysql://localhost:3306/test?useSSL=false")}))
 
 ;; ## Fixtures
 
