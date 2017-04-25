@@ -26,15 +26,16 @@
 (defn- query-inserted-row
   [db
    {:keys [db/table db/primary-key]
-    :or {db/primary-key :id}}
+    :or {db/primary-key :id}
+    :as document}
    {:keys [generated_key]}]
-  (when generated_key
+  (when-let [document-id (or generated_key (get document primary-key))]
     (let [table-name (csk/->snake_case_string table)
           column     (csk/->snake_case_string primary-key)
           [row] (->> [(format "select * from %s where %s = ? limit 1"
                               table-name
                               column)
-                      generated_key]
+                      document-id]
                      (jdbc/query db))]
       (verify-inserted-row! table-name column document-id row)
       row)))
