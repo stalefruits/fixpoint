@@ -12,18 +12,33 @@
 ;; We need to do an additional query to fetch the inserted row. For this, we
 ;; need to know the primary key column and the generated key.
 
+(defn- verify-inserted-row!
+  [table-name column document-id row]
+  (when-not row
+    (throw
+      (IllegalStateException.
+        (format
+          "Could not fetch inserted row using column '%s.%s' and value: %s"
+          table-name
+          column
+          document-id)))))
+
 (defn- query-inserted-row
   [db
    {:keys [db/table db/primary-key]
-    :or {db/primary-key :id}}
+    :or {db/primary-key :id}
+    :as document}
    {:keys [generated_key]}]
-  (when generated_key
-    (->> [(format "select * from %s where %s = ?"
-                  (csk/->snake_case_string table)
-                  (csk/->snake_case_string primary-key))
-          generated_key]
-         (jdbc/query db)
-         (first))))
+  (when-let [document-id (or generated_key (get document primary-key))]
+    (let [table-name (csk/->snake_case_string table)
+          column     (csk/->snake_case_string primary-key)
+          [row] (->> [(format "select * from %s where %s = ? limit 1"
+                              table-name
+                              column)
+                      document-id]
+                     (jdbc/query db))]
+      (verify-inserted-row! table-name column document-id row)
+      row)))
 
 (defn- remove-primary-key-field
   [document]

@@ -10,7 +10,7 @@
   (mysql/make-datasource
     :test-db
     {:connection-uri (or (System/getenv "FIXPOINT_MYSQL_URI")
-                         "jdbc:mysql://localhost:3306/test")}))
+                         "jdbc:mysql://localhost:3306/test?useSSL=false")}))
 
 ;; ## Fixtures
 
@@ -31,12 +31,23 @@
       (fix/as reference)
       (fix/on-datasource :test-db)))
 
+(defn- post-with-explicit-id
+  [reference id person-reference text]
+  (-> {:db/table  :posts
+       :id        id
+       :text      text
+       :author-id person-reference}
+      (fix/as reference)
+      (fix/on-datasource :test-db)))
+
+(def +explicit-post-id+ 123456789)
+
 (def +fixtures+
   [(person :person/me     "me"        27)
    (person :person/you    "you"       29)
    (post   :post/happy    :person/me  "Awesome.")
-   (post   :post/meh      :person/you "Meh.")
-   (post   :post/question [:post/happy :author-id] "Do you really think so?")])
+   (post   :post/question [:post/happy :author-id] "Do you really think so?")
+   (post-with-explicit-id :post/meh +explicit-post-id+ :person/you "Meh.")])
 
 (defn- use-mysql-setup
   []
@@ -85,6 +96,9 @@
          :post/happy    :person/me
          :post/meh      :person/you
          :post/question :person/me))
+
+  (testing "explicitly set primary key."
+    (is (= +explicit-post-id+ (fix/id :post/meh))))
 
   (testing "datasource access."
     (let [db (fix/raw-datasource :test-db)
