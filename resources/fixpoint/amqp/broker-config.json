@@ -1,0 +1,49 @@
+{
+  "name": "${broker.name}",
+  "modelVersion": "6.0",
+  "authenticationproviders" : [ {
+    "name" : "plain",
+    "type" : "Plain",
+    "secureOnlyMechanisms": [],
+    "users" : [ {
+      "name" : "${fixpoint.username}",
+      "type" : "managed",
+      "password" : "${fixpoint.password}"
+    } ]
+  } ],
+  "brokerloggers" : [ {
+    "name" : "stdout",
+    "type" : "Console",
+    "brokerloginclusionrules" : [ {
+      "name" : "Root",
+      "type" : "NameAndLevel",
+      "level" : "WARN",
+      "loggerName" : "ROOT"
+    }, {
+      "name" : "Qpid",
+      "type" : "NameAndLevel",
+      "level" : "${fixpoint.log_level}",
+      "loggerName" : "org.apache.qpid.*"
+    }, {
+      "name" : "Operational",
+      "type" : "NameAndLevel",
+      "level" : "${fixpoint.log_level}",
+      "loggerName" : "qpid.message.*"
+    } ]
+  } ],
+  "ports" : [  {
+    "name" : "AMQP",
+    "port" : "${qpid.amqp_port}",
+    "authenticationProvider" : "plain",
+    "virtualhostaliases": [ {
+      "name": "${fixpoint.vhost}",
+      "type": "nameAlias"
+    } ]
+  } ],
+  "virtualhostnodes": [ {
+    "name": "${fixpoint.vhost}",
+    "type": "JSON",
+    "defaultVirtualHostNode": true,
+    "virtualHostInitialConfiguration": "${qpid.initial_config_virtualhost_config}"
+  } ]
+}

@@ -15,9 +15,13 @@
           [org.postgresql/postgresql "9.4.1212"]
           [mysql/mysql-connector-java "5.1.41"]
           [cc.qbits/spandex "0.3.4"
-           :exclusions [org.clojure/clojure]]]}
-   :codox {:dependencies [[org.clojure/tools.reader "1.0.0-beta4"]
-                          [codox-theme-rdash "0.1.1"]]
+           :exclusions [org.clojure/clojure]]
+          [org.apache.qpid/qpid-broker "6.1.3"
+           :exclusions [org.webjars.bower/dstore
+                        org.slf4j/slf4j-api]]
+          [kithara "0.1.8"]]}
+   :codox {:dependencies [[org.clojure/tools.reader "1.0.0"]
+                          [codox-theme-rdash "0.1.2"]]
            :plugins [[lein-codox "0.10.3"]]
            :codox {:project {:name "fixpoint"}
                    :metadata {:doc/format :markdown}
