@@ -7,11 +7,12 @@ test datastores and data.
 [![Clojars Artifact](https://img.shields.io/clojars/v/stylefruits/fixpoint.svg)](https://clojars.org/stylefruits/fixpoint)
 
 Ready-to-use components for [PostgreSQL][postgres], [MySQL][mysql] and
-[ElasticSearch][elastic] are already included.
+[ElasticSearch][elastic], as well as an [AMQP Broker][qpid] are already included.
 
 [postgres]: https://www.postgresql.org/
 [mysql]: https://www.mysql.com/
 [elastic]: https://www.elastic.co/products/elasticsearch
+[qpid]: https://qpid.apache.org/
 
 ## Usage
 
